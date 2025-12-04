@@ -415,32 +415,27 @@
                 );
 
                 eventSource.onmessage = (event) => {
-                    console.log('[FRONTEND DEBUG] Received event:', event);
-                    console.log('[FRONTEND DEBUG] Event data:', event.data);
-
                     try {
                         const data = JSON.parse(event.data);
-                        console.log('[FRONTEND DEBUG] Parsed data:', data);
 
                         if (data.done) {
                             // Завершено
-                            console.log('[FRONTEND DEBUG] Stream completed');
                             eventSource.close();
                             messageInput.disabled = false;
                             sendButton.disabled = false;
                             messageInput.focus();
                         } else if (data.delta) {
                             // Добавить новый токен
-                            console.log('[FRONTEND DEBUG] Received delta:', data.delta);
                             accumulatedText += data.delta;
                             contentDiv.innerHTML = formatMessage(accumulatedText);
                             chatMessages.scrollTop = chatMessages.scrollHeight;
-                        } else {
-                            console.warn('[FRONTEND DEBUG] Unknown data format:', data);
                         }
                     } catch (error) {
-                        console.error('[FRONTEND DEBUG] JSON parse error:', error);
-                        console.error('[FRONTEND DEBUG] Raw data:', event.data);
+                        console.error('Error parsing SSE message:', error);
+                        eventSource.close();
+                        showError('Ошибка обработки ответа');
+                        messageInput.disabled = false;
+                        sendButton.disabled = false;
                     }
                 };
 

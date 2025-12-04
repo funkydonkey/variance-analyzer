@@ -229,93 +229,46 @@ async def chat_with_agent_stream(
 ):
     """
     Стримящий чат с AI агентом через Server-Sent Events.
+
+    Returns:
+        EventSourceResponse: Streaming SSE response с токенами от AI агента
     """
 
     async def event_generator():
-        """
-        Генератор SSE событий для стриминга ответа агента.
-
-        Формат SSE:
-        yield {
-            "event": "message",
-            "data": json.dumps({"delta": "текст", "done": False})
-        }
-        """
+        """Генератор SSE событий для стриминга ответа агента."""
         try:
             from ai.variance_agent import VarianceAnalyst
 
-            # 1. Создать агента
-            print(f"[DEBUG] Creating VarianceAnalyst with file: {file_path}")
+            # Создать агента
             analyst = VarianceAnalyst(file_path)
-            print(f"[DEBUG] Analyst created successfully")
 
-            # 2. Получить streaming результат
-            print(f"[DEBUG] Creating stream for message: {message}")
-
-            # Используем run_streamed который возвращает RunResultStreaming
+            # Получить streaming результат
             result = Runner.run_streamed(analyst.agent, message)
-            print(f"[DEBUG] run_streamed returned: {type(result)}")
-
-            # Получаем async iterator событий через stream_events()
             stream = result.stream_events()
-            print(f"[DEBUG] stream_events() returned: {type(stream)}")
 
-            # 3. Итерироваться по событиям
-            event_count = 0
+            # Итерироваться по событиям и отправлять текстовые токены
             async for event in stream:
-                event_count += 1
-                print(f"[DEBUG] Event #{event_count}: {type(event)}")
-                print(f"[DEBUG] Event attributes: {dir(event)}")
-                print(f"[DEBUG] Event: {event}")
+                # Проверяем event.data.delta для текстовых токенов
+                if hasattr(event, 'data') and hasattr(event.data, 'delta') and event.data.delta:
+                    yield {
+                        "event": "message",
+                        "data": json.dumps({
+                            "delta": event.data.delta,
+                            "done": False
+                        })
+                    }
 
-                # Проверяем все возможные атрибуты
-                if hasattr(event, 'text_delta') and event.text_delta:
-                    print(f"[DEBUG] Found text_delta: {event.text_delta}")
-                    yield {
-                        "event": "message",
-                        "data": json.dumps({
-                            "delta": event.text_delta,
-                            "done": False
-                        })
-                    }
-                elif hasattr(event, 'delta') and event.delta:
-                    print(f"[DEBUG] Found delta: {event.delta}")
-                    yield {
-                        "event": "message",
-                        "data": json.dumps({
-                            "delta": event.delta,
-                            "done": False
-                        })
-                    }
-                elif hasattr(event, 'content') and event.content:
-                    print(f"[DEBUG] Found content: {event.content}")
-                    yield {
-                        "event": "message",
-                        "data": json.dumps({
-                            "delta": event.content,
-                            "done": False
-                        })
-                    }
-                else:
-                    print(f"[DEBUG] Event has no recognized text attribute")
-
-            # 4. Финальное событие
-            print(f"[DEBUG] Stream completed. Total events: {event_count}")
+            # Финальное событие
             yield {
                 "event": "message",
                 "data": json.dumps({"done": True})
             }
 
         except Exception as e:
-            # Обработка ошибок ВНУТРИ генератора
-            # Нельзя raise HTTPException - вместо этого yield error event
-            import traceback
-            error_detail = traceback.format_exc()
-            print(f"[ERROR] Exception in event_generator: {error_detail}")
+            # Обработка ошибок внутри генератора
             yield {
                 "event": "error",
-                "data": json.dumps({"error": str(e), "traceback": error_detail})
+                "data": json.dumps({"error": str(e)})
             }
 
-    # return СНАРУЖИ генератора!
     return EventSourceResponse(event_generator())
