@@ -249,7 +249,7 @@ async def chat_with_agent_stream(
             # Итерироваться по событиям и отправлять текстовые токены
             async for event in stream:
                 # Проверяем event.data.delta для текстовых токенов
-                if hasattr(event, 'data') and hasattr(event.data, 'delta') and event.data.delta:
+                if hasattr(event, 'data') and hasattr(event.data, 'delta') and event.data.type == "response.output_text.delta" and event.data.delta:
                     yield {
                         "event": "message",
                         "data": json.dumps({
@@ -270,5 +270,4 @@ async def chat_with_agent_stream(
                 "event": "error",
                 "data": json.dumps({"error": str(e)})
             }
-
     return EventSourceResponse(event_generator())
