@@ -270,4 +270,5 @@ async def chat_with_agent_stream(
                 "event": "error",
                 "data": json.dumps({"error": str(e)})
             }
+
     return EventSourceResponse(event_generator())
