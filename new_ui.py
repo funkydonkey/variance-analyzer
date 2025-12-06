@@ -1,3 +1,4 @@
+from time import sleep
 from dotenv import load_dotenv
 import streamlit as st
 import asyncio
@@ -62,7 +63,26 @@ if prompt := st.chat_input("Your question"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Typing..."):
-            response = asyncio.run(st.session_state.analyst.chat(prompt))
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            st.markdown(response)
+        # non-streaming version
+        # with st.spinner("Typing..."):
+            
+        #     response = asyncio.run(st.session_state.analyst.chat(prompt))
+        #     st.session_state.messages.append({"role": "assistant", "content": response})
+        #     st.markdown(response)
+
+        #streaming version
+        with st.spinner("Thinking..."):
+            # tokens = []
+            # async def collect_tokens():
+            #     async for token in st.session_state.analyst.chat_stream(prompt):
+            #         tokens.append(token)
+
+            # asyncio.run(collect_tokens())
+
+            # def token_generator():
+            #     for token in tokens:
+            #         yield token
+            #         sleep(0.01)
+            
+            full_response = st.write_stream(st.session_state.analyst.chat_stream(prompt))
+            st.session_state.messages.append({"role": "assistant", "content": str(full_response)})

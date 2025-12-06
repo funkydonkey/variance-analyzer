@@ -1,6 +1,7 @@
 """AI агент для variance analysis с использованием OpenAI Agents SDK."""
 import asyncio
 from pathlib import Path
+from time import sleep
 from agents import Agent, Runner, SQLiteSession, run_demo_loop
 from ai.tools import  get_summary_stats, get_top_variances, get_variance_data
 
@@ -94,6 +95,39 @@ class VarianceAnalyst:
         """
         return Runner.run_sync(self.chat, message, session=self.session)
     
+    async def chat_stream(self, message: str):
+      """
+        Стримящая версия chat() - возвращает токены по мере генерации.
+
+        Args:
+            message: Вопрос пользователя
+
+        Yields:
+            str: Токены ответа агента
+
+        Подсказки:
+        1. Используй Runner.run_stream() вместо Runner.run()
+        2. Итерируйся по stream: async for event in stream
+        3. Проверяй тип события и yield только текстовые токены
+        4. События могут быть разных типов - нужны только текстовые
+
+        Документация OpenAI Agents SDK:
+        - Runner.run_stream() возвращает AsyncIterator[Event]
+        - События имеют разные атрибуты: text_delta, tool_name, final_output
+        """
+      result = Runner.run_streamed(
+           starting_agent=self.agent,
+           input=message,
+           context=self.session
+      )
+
+      stream = result.stream_events()
+
+      async for event in stream:
+        if hasattr(event, "data") and event.data.type == "response.output_text.delta":
+            yield event.data.delta
+            # sleep(0.5)
+    
 async def interactive_mode(data_file: str):
         """Запускает агента в интерактивном режиме."""
 
@@ -102,3 +136,4 @@ async def interactive_mode(data_file: str):
         print("Введи свой вопрос или 'quit' для выхода\n")
 
         await run_demo_loop(analyst.agent, context=analyst.session)
+
