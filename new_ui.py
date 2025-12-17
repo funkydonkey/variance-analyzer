@@ -1,4 +1,3 @@
-from time import sleep
 from dotenv import load_dotenv
 import streamlit as st
 import asyncio
@@ -37,11 +36,19 @@ st.title("Variance Analyzer", anchor="variance-analyzer")
 with st.sidebar:
     st.title("⚙️ Настройки")
     st.markdown("Analyze your budget variances with AI-powered insights 📊")
-    st.file_uploader("Load new file:")
-    st.info(f"📊 Loaded file: {st.session_state.data_file}")
+    uploaded_file = st.file_uploader(
+        "Load new file:",
+        type=["csv", "xlsx"],
+        help="CSV or XLSX file with your budget data"
+        )
+    
+    if uploaded_file is not None:
+        pass
 
     st.divider()
-
+    st.info(f"📊 Loaded file: {st.session_state.data_file}")
+    
+    st.divider()
     if st.button("🗑️ Очистить чат"):
         st.session_state.messages = [
             {
