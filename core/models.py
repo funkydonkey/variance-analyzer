@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict
 
 @dataclass
 class VarianceRow:
@@ -75,3 +75,62 @@ class VarianceReport:
             raise ValueError("Не задан критерий сортировки 'absolute' или 'percentage'.")
 
         return sorted_rows[:n]
+
+
+@dataclass
+class ColumnMapping:
+    """Маппинг столбцов файла на стандартные поля.
+
+    Attributes:
+        account: Название столбца для account
+        period: Название столбца для period
+        actual: Название столбца для actual
+        budget: Название столбца для budget
+        extra_columns: Дополнительные столбцы (не используются в анализе)
+        confidence: Уверенность AI в маппинге (0.0-1.0)
+    """
+    account: str
+    period: str
+    actual: str
+    budget: str
+    extra_columns: Optional[Dict[str, str]] = None
+    confidence: float = 1.0
+
+    def to_dict(self) -> Dict[str, str]:
+        """Возвращает маппинг в виде словаря."""
+        return {
+            "account": self.account,
+            "period": self.period,
+            "actual": self.actual,
+            "budget": self.budget
+        }
+
+
+@dataclass
+class FileMetadata:
+    """Метаданные загруженного файла.
+
+    Attributes:
+        filename: Имя файла
+        rows: Количество строк данных
+        columns: Список названий столбцов
+        file_type: Тип файла ('csv' или 'xlsx')
+        size_bytes: Размер файла в байтах
+        column_types: Типы столбцов (название → тип данных)
+    """
+    filename: str
+    rows: int
+    columns: List[str]
+    file_type: str
+    size_bytes: int
+    column_types: Dict[str, str] = field(default_factory=dict)
+
+    @property
+    def size_mb(self) -> float:
+        """Размер файла в МБ."""
+        return self.size_bytes / (1024 * 1024)
+
+    @property
+    def size_kb(self) -> float:
+        """Размер файла в КБ."""
+        return self.size_bytes / 1024

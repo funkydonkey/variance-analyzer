@@ -213,8 +213,8 @@ class TestApplyFilters:
 
         filtered = apply_filters(sample_rows, params)
 
-        # Revenue (200), Sales (400), IT (300)
-        assert len(filtered) == 3
+        # Revenue (200), Sales (400) - IT исключается так как budget=0 и percentage_variance=None
+        assert len(filtered) == 2
 
     def test_apply_filters_empty_result(self, sample_rows):
         """Тест apply_filters с очень строгими фильтрами"""

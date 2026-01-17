@@ -1,7 +1,8 @@
 from pathlib import Path
 import pandas as pd
-from core.models import VarianceRow
-from typing import Optional, List
+import io
+from core.models import VarianceRow, FileMetadata
+from typing import Optional, List, Tuple
 
 def load_csv(file_path: Path) -> pd.DataFrame:
      """Загружает CSV файл в DataFrame.
@@ -161,3 +162,50 @@ def load_report(
     rows = dataframe_to_rows(df)
 
     return rows
+
+
+def load_from_uploaded_file(uploaded_file) -> Tuple[pd.DataFrame, FileMetadata]:
+    """Загружает файл из Streamlit file_uploader.
+
+    Args:
+        uploaded_file: Объект UploadedFile из st.file_uploader
+
+    Returns:
+        Tuple из (DataFrame, FileMetadata)
+
+    Raises:
+        ValueError: Если файл невалидный или слишком большой
+    """
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 МБ
+
+    # Получаем информацию о файле
+    filename = uploaded_file.name
+    file_size = uploaded_file.size
+    file_extension = Path(filename).suffix.lower()
+
+    # Проверяем размер файла
+    if file_size > MAX_FILE_SIZE:
+        raise ValueError(f"Файл слишком большой ({file_size / (1024*1024):.2f} МБ). Максимальный размер: 10 МБ")
+
+    # Определяем тип файла
+    if file_extension == '.csv':
+        file_type = 'csv'
+        df = pd.read_csv(uploaded_file)
+    elif file_extension in ['.xlsx', '.xls']:
+        file_type = 'xlsx'
+        df = pd.read_excel(uploaded_file)
+    else:
+        raise ValueError(f"Неподдерживаемый формат файла: {file_extension}. Поддерживаются только CSV и XLSX")
+
+    # Валидация структуры
+    if len(df.columns) < 2:
+        raise ValueError("Файл должен содержать минимум 2 столбца")
+
+    if len(df) < 1:
+        raise ValueError("Файл должен содержать минимум 1 строку данных")
+
+    # Создаём метаданные (используем функцию из mapper.py)
+    from core.mapper import create_file_metadata
+    metadata = create_file_metadata(filename, df, file_type, file_size)
+
+    return df, metadata
